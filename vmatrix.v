@@ -2,7 +2,9 @@
 /* verilator lint_off MULTIDRIVEN */
 
 module vmatrix #(
-    parameter curs_startrow = 14
+    parameter curs_startrow = 14,
+    parameter hsync_neg = 1,
+    parameter vsync_neg = 1
 ) (
     input wire DOTCLOCK,
     input wire ph2,
@@ -41,11 +43,13 @@ module vmatrix #(
 
     reg curs = 0;
     wire [3:0] ccol, fcol, bcol;
+    wire video;
 
     assign char_addr = {VDI[7:0], RA[3:0]};
     assign ccol = cursor_color_latch[7:4];
     assign fcol = color_latch[7:4];
     assign bcol = color_latch[3:0];
+    assign video = video_latch[7];
     
     initial
     begin
@@ -75,7 +79,7 @@ module vmatrix #(
         // Load next character line
         if (ph2)
         begin
-            if (DE == 1)
+            if (DE)
             begin
                 // Within visible display
                 video_latch <= chargen[char_addr];
@@ -109,7 +113,7 @@ module vmatrix #(
         begin
             if (curs && (RA >= curs_startrow))
                 {R, RI, G, GI, B, BI} <= color_table[ccol][5:0];  // Cursor color
-            else if ((video_latch & 8'b10000000) == 8'b10000000)
+            else if (video)
                 {R, RI, G, GI, B, BI} <= color_table[fcol][5:0];    // FG color
             else
                 {R, RI, G, GI, B, BI} <= color_table[bcol][5:0];    // BG color
@@ -119,8 +123,8 @@ module vmatrix #(
         else
             {R, RI, G, GI, B, BI} <= 6'd0;  // Black
 
-        hsync <= HS;
-        vsync <= VS;
+        hsync <= HS ^ hsync_neg;
+        vsync <= VS ^ vsync_neg;
     end
 endmodule
 

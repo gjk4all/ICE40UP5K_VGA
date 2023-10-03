@@ -1,4 +1,4 @@
-`timescale 1ns/1ps
+`timescale 1ns/100ps
  
 `include "main.v"
 
@@ -17,7 +17,7 @@ main uut(clk
 initial begin
     $dumpfile("test.vcd");
     $dumpvars(0,top);
-    #1000000;
+    #3000000;
 
     $finish;
 end

@@ -2,3 +2,5 @@ build
 obj_dir
 *.sh
 *.gtkw
+*.vcd
+abc.history
