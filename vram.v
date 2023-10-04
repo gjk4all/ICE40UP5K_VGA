@@ -12,7 +12,7 @@ module vram (
     // Video text RAM
     // @include verilog_memory.list
     
-    reg [15:0] vram[0:8191];
+    reg [15:0] vram[0:4096];
     reg [12:0] cursor_address = 0;
     
     initial

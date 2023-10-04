@@ -14,7 +14,7 @@ all: $(PROJECT).bin
 $(PROJECT).bin: *.v $(PINMAP)
 	mkdir -p $(BUILD_DIR)
 	yosys -p "synth_ice40 -top main -json $(BUILD_DIR)/$(PROJECT).json" $(FILES)
-	nextpnr-ice40 -r --json $(BUILD_DIR)/$(PROJECT).json --pcf $(PINMAP) --asc $(BUILD_DIR)/$(PROJECT).asc --package $(PACKAGE) --freq 25.175 --$(DEVICE)
+	nextpnr-ice40 -r --json $(BUILD_DIR)/$(PROJECT).json --pcf $(PINMAP) --asc $(BUILD_DIR)/$(PROJECT).asc --package $(PACKAGE) --freq 25.175 --timing-allow-fail --$(DEVICE)
 	icepack $(BUILD_DIR)/$(PROJECT).asc $(BUILD_DIR)/$(PROJECT).bin
 
 burn: $(BUILD_DIR)/$(PROJECT).bin

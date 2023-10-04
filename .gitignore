@@ -3,4 +3,5 @@ obj_dir
 *.sh
 *.gtkw
 *.vcd
+*.log
 abc.history

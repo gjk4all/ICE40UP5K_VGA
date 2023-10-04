@@ -33,23 +33,18 @@ module vmatrix #(
     
     reg [7:0] cursor_color_latch = 8'h70;
     reg [5:0] color_table[0:15];
-    reg [7:0] chargen[0:4095];
     reg [7:0] color_latch = 0;
     reg [7:0] video_latch = 0;
     reg [1:0] ph2_detect = 0;
     reg [1:0] crd_detect = 0;
     reg [1:0] cwr_detect = 0;
-    wire [11:0] char_addr;
 
     reg curs = 0;
     wire [3:0] ccol, fcol, bcol;
-    wire video;
 
-    assign char_addr = {VDI[7:0], RA[3:0]};
     assign ccol = cursor_color_latch[7:4];
     assign fcol = color_latch[7:4];
     assign bcol = color_latch[3:0];
-    assign video = video_latch[7];
     
     initial
     begin
@@ -70,8 +65,6 @@ module vmatrix #(
         color_table[13] = 6'h33;
         color_table[14] = 6'h3C;
         color_table[15] = 6'h3F;
-        // Initialize character generator
-        $readmemh("verilog_charrom.list", chargen);
     end
     
     always @ (posedge DOTCLOCK)
@@ -82,18 +75,18 @@ module vmatrix #(
             if (DE)
             begin
                 // Within visible display
-                video_latch <= chargen[char_addr];
-                color_latch <= VDI[15:8];
+                {color_latch, video_latch} <= VDI;
                 curs <= cursor;
             end
             else
             begin
                 // Outside visible display
-                video_latch <= 8'd0;
-                color_latch <= 8'd0;
+                {color_latch, video_latch} <= 16'd0;
                 curs <= 0;
             end
         end
+        else
+            video_latch <= {video_latch[6:0], 1'b0};   // Shift left
 
         // Do controller commands
         crd_detect <= {crd_detect[0], R_CCOL};
@@ -110,15 +103,16 @@ module vmatrix #(
     begin
         // Output video
         if (DE)
-        begin
+        begin 
             if (curs && (RA >= curs_startrow))
                 {R, RI, G, GI, B, BI} <= color_table[ccol][5:0];  // Cursor color
-            else if (video)
-                {R, RI, G, GI, B, BI} <= color_table[fcol][5:0];    // FG color
+            else if (video_latch[7] == 0)
+                {R, RI, G, GI, B, BI} <= color_table[bcol][5:0];  // BG color
             else
-                {R, RI, G, GI, B, BI} <= color_table[bcol][5:0];    // BG color
-
-            video_latch <= {video_latch[6:0], 1'b0};   // Shift left
+                {R, RI, G, GI, B, BI} <= color_table[fcol][5:0];  // FG color
+                //{R, RI, G, GI, B, BI} <= color_table[bcol][5:0];  // BG color
+            
+           //{R, RI, G, GI, B, BI} <= video_latch;
         end
         else
             {R, RI, G, GI, B, BI} <= 6'd0;  // Black

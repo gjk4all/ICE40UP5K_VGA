@@ -3,6 +3,7 @@
 `include "clockgen.v"
 `include "vdu.v"
 `include "vram.v"
+`include "charrom.v"
 `include "vmatrix.v"
 //`include "busswitch.v"
 
@@ -26,6 +27,7 @@ module main (
     wire vs;
     wire [4:0] row_address;
     wire [12:0] video_address;
+    wire [15:0] character_data;
     wire [15:0] video_data;
     //wire [15:0] matrix_data;
     //wire [15:0] vram_data;
@@ -51,9 +53,16 @@ module main (
     vram video_ram (
         .R_VID(ph1),
         .VA(video_address),
-        .VDO(video_data),
+        .VDO(character_data),
         .cursor(cursor)
         //.DBO(vram_data)
+    );
+
+    charrom character_rom (
+        .ph1(ph1),
+        .row_address(row_address),
+        .vdi(character_data),
+        .vdo(video_data)
     );
 
     vmatrix video_matrix (
