@@ -6,16 +6,16 @@ module vmatrix #(
     parameter hsync_neg = 1,
     parameter vsync_neg = 1
 ) (
-    input wire DOTCLOCK,
-    input wire ph2,
+    input wire clk,
+    input wire ph0,
     input wire sec_pulse,
-    input wire DE,
-    input wire HS,
-    input wire VS,
-    input wire [4:0] RA,
+    input wire de_in,
+    input wire hs_in,
+    input wire vs_in,
+    input wire [4:0] row_in,
+    input wire cursor_in,
+    input wire [15:0] characterline_in,
     input wire [15:0] DBI,
-    input wire [15:0] VDI,
-    input wire cursor,
     input wire W_CCOL,
     input wire R_CCOL,
     output reg hsync,
@@ -40,6 +40,7 @@ module vmatrix #(
     reg [1:0] cwr_detect = 0;
 
     reg curs = 0;
+    reg de2 = 0;
     wire [3:0] ccol, fcol, bcol;
 
     assign ccol = cursor_color_latch[7:4];
@@ -67,16 +68,18 @@ module vmatrix #(
         color_table[15] = 6'h3F;
     end
     
-    always @ (posedge DOTCLOCK)
+    always @ (posedge clk)
     begin
         // Load next character line
-        if (ph2)
+        if (ph0)
         begin
-            if (DE)
+            //de2 <= de_in;
+
+            if (de_in)
             begin
                 // Within visible display
-                {color_latch, video_latch} <= VDI;
-                curs <= cursor;
+                {color_latch, video_latch} <= characterline_in;
+                curs <= cursor_in;
             end
             else
             begin
@@ -99,26 +102,23 @@ module vmatrix #(
             cursor_color_latch <= DBI[7:0];
     end
     
-    always @ (negedge DOTCLOCK)
+    always @ (negedge clk)
     begin
         // Output video
-        if (DE)
+        if (de_in)
         begin 
-            if (curs && (RA >= curs_startrow))
+            if (curs && (row_in >= curs_startrow))
                 {R, RI, G, GI, B, BI} <= color_table[ccol][5:0];  // Cursor color
-            else if (video_latch[7] == 0)
-                {R, RI, G, GI, B, BI} <= color_table[bcol][5:0];  // BG color
-            else
+            else if (video_latch[7])
                 {R, RI, G, GI, B, BI} <= color_table[fcol][5:0];  // FG color
-                //{R, RI, G, GI, B, BI} <= color_table[bcol][5:0];  // BG color
-            
-           //{R, RI, G, GI, B, BI} <= video_latch;
+            else
+                {R, RI, G, GI, B, BI} <= color_table[bcol][5:0];  // BG color
         end
         else
             {R, RI, G, GI, B, BI} <= 6'd0;  // Black
 
-        hsync <= HS ^ hsync_neg;
-        vsync <= VS ^ vsync_neg;
+        hsync <= hs_in ^ hsync_neg;
+        vsync <= vs_in ^ vsync_neg;
     end
 endmodule
 

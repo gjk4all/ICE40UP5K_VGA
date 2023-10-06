@@ -1,3 +1,5 @@
+/* verilator lint_off CASEINCOMPLETE */
+
 module vdu #(
 	parameter hfront_porch = 2,
 	parameter hsync_length = 12,
@@ -10,11 +12,15 @@ module vdu #(
 	parameter vback_porch = 33
 ) (
 	input wire clk,
-	output wire DE,
-	output reg HS = 0,
-	output reg VS = 0,
-	output wire [4:0] R,
-	output wire [12:0] A
+    input wire ph0,
+    input wire sec_in,
+    output reg ph1 = 0,
+    output reg sec_out = 0,
+	output reg de = 0,
+	output reg hs = 0,
+	output reg vs = 0,
+	output wire [4:0] row_out,
+	output reg [12:0] video_address
 );
 	// 6845 VDU
 	
@@ -22,57 +28,66 @@ module vdu #(
 	reg [4:0] row = 0;
 	reg [7:0] line = 0;
 	reg [10:0] scanline = 0;
+    reg [1:0] ph0_detect = 0;
 	
-	//assign DE = h_en & v_en;    // Display enable, visible area is valid
-	assign DE = ((column < hactive_video)?1:0) & ((line < visible_lines)?1:0);
-	assign R = row;             // Character row address
-	assign A = {line[6:0], 6'b0} + {1'b0, line, 4'b0} + {5'b0, column};  // Ram address of current position
+	assign row_out = row;             // Character row address
 	
 	always @ (posedge clk)
 	begin
-	    // Set horizontal signals
-	    if (column < hactive_video + hfront_porch - 1)
-	        HS <= 0;
-	    else if (column < hactive_video + hfront_porch + hsync_length - 1)
-	        HS <= 1;
-	    else
-	        HS <= 0;
-	    
-	    // Set vertical signals
-	    if (scanline < (row_character * visible_lines) + vfront_porch)
-	        VS <= 0;
-	    else if (scanline < (row_character * visible_lines) + vfront_porch + vsync_length)
-	        VS <= 1;
-	    else
-	        VS <= 0;
-	    
-	end
+        ph0_detect <= {ph0_detect[0], ph0};
+        
+        case (ph0_detect)
+            2'b01 : begin
+	                    video_address <= {line[6:0], 6'b0} + {1'b0, line, 4'b0} + {5'b0, column};  // Ram address of current position
+	                    de <= ((column < hactive_video)?1:0) & ((line < visible_lines)?1:0);
 
-	always @ (negedge clk)
-	begin
-	    // update counters
-	    if (column < hactive_video + hfront_porch + hsync_length + hback_porch - 1)
-	        column <= column + 1;
-	    else
-	    begin
-	        column <= 0;
-	        if (row < row_character - 1)
-	            row <= row + 1;
-	        else
-	        begin
-	            row <= 0;
-	            if (line < visible_lines)
-	                line <= line + 1;
-	        end
+                	    // Set horizontal signals
+                	    if (column < hactive_video + hfront_porch)
+                	        hs <= 0;
+                	    else if (column < hactive_video + hfront_porch + hsync_length)
+                	        hs <= 1;
+                	    else
+                	        hs <= 0;
+	    
+                	    // Set vertical signals
+                	    if (scanline < (row_character * visible_lines) + vfront_porch)
+                	        vs <= 0;
+                	    else if (scanline < (row_character * visible_lines) + vfront_porch + vsync_length)
+                	        vs <= 1;
+                	    else
+                	        vs <= 0;
+/*                    end
 
-            if (scanline < (row_character * visible_lines) + vfront_porch + vsync_length + vback_porch - 1)
-                scanline <= scanline + 1;
-            else
-            begin
-                scanline <= 0;
-                row <= 0;
-                line <= 0;
-            end
-	    end
+            2'b10 : begin */
+                   	    // update counters
+	                    if (column < hactive_video + hfront_porch + hsync_length + hback_porch - 1)
+                	        column <= column + 1;
+                	    else
+                        begin
+                	        column <= 0;
+                	        if (row < row_character - 1)
+                	            row <= row + 1;
+                	        else
+                	        begin
+                	            row <= 0;
+                	            if (line < visible_lines - 1)
+                	                line <= line + 1;
+                	        end
+
+                            if (scanline < (row_character * visible_lines) + vfront_porch + vsync_length + vback_porch - 1)
+                                scanline <= scanline + 1;
+                            else
+                            begin
+                                scanline <= 0;
+                                row <= 0;
+                                line <= 0;
+                            end
+                	    end
+                    end
+        endcase
+
+        // ripple tru latches
+        ph1 <= ph0_detect[0];
+        sec_out <= sec_in;
 	end
 endmodule
