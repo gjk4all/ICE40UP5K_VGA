@@ -6,10 +6,21 @@
 `include "vram.v"
 `include "charrom.v"
 `include "vmatrix.v"
-//`include "busswitch.v"
+`include "control.v"
+`include "datamux.v"
 
 module main (
     input wire clk,
+    input wire nrd,
+    input wire nwr,
+    input wire ncs,
+    input wire [3:0] ext_address,
+    inout wire [7:0] ext_databus,
+`ifndef SYNTHESIS
+    input wire [7:0] db_in,
+    output wire [7:0] db_out,
+`endif
+    output wire wait_sig,
     output wire hsync,
     output wire vsync,
     output wire r,
@@ -45,6 +56,20 @@ module main (
     wire [12:0] video_address;
     wire [15:0] character_data;
     wire [15:0] videoline_data;
+    wire [15:0] int_address;
+    wire [15:0] int_databus;
+    wire [15:0] int_databus_0;
+    wire [1:0] state_0;
+    wire [15:0] int_databus_1;
+    wire [1:0] state_1;
+    wire [5:0] int_command;
+    wire [7:0] ext_databus_in;
+    wire [7:0] ext_databus_out;
+
+`ifndef SYNTHESIS
+    assign db_out = ext_databus_out;
+    assign ext_databus_in = db_in;
+`endif
 
 //    pll clock_doubler (
 //        .clock_in(clk),
@@ -81,6 +106,12 @@ module main (
         .row_in(row_address1),
         .video_address(video_address),
 
+        .int_address(int_address),
+        .int_command(int_command),
+        .int_data_in(int_databus),
+        .int_data_out(int_databus_1),
+        .state(state_1),
+
         .ph1(ph2),
         .sec_out(sec_pulse2),
         .de_out(de2),
@@ -89,7 +120,6 @@ module main (
         .row_out(row_address2),
         .cursor(cursor2),
         .vram_out(character_data)
-        //.DBO(vram_data)
     );
 
     charrom character_rom (
@@ -131,11 +161,42 @@ module main (
         .GI(gi),
         .B(b),
         .BI(bi)
-        //.DBO(matrix_data)
     );
 
-//    busswitch switch(
-//        .DI0(matrix_data),
-//        .DI1(vram_data)
-//    );
+    control vdu_control (
+        .clk(clk),
+        .nrd(nrd),
+        .nwr(nwr),
+        .ncs(ncs),
+        .wait_sig(wait_sig),
+        .ext_address(ext_address),
+        .ext_data_in(ext_databus_in),
+        .ext_data_out(ext_databus_out),
+        .int_data_in(int_databus_0),
+        .int_data_out(int_databus),
+        .state(state_0),
+        .int_address(int_address),
+        .int_command(int_command)
+    );
+
+    datamux data_mux (
+        .clk(clk),
+        .int_data_1(int_databus_1),
+        .state_1(state_1),
+        .int_data_out(int_databus_0),
+        .state(state_0)
+    );
+
+`ifdef SYNTHESIS
+    SB_IO #(
+        .PIN_TYPE(6'b1010_01),
+        .PULLUP(1'b0)
+    ) triState (
+        .PACKAGE_PIN(ext_databus),
+        .OUTPUT_ENABLE(~ncs & ~nrd),
+        .D_OUT_0(ext_databus_out),
+        .D_IN_0(ext_databus_in)
+    );
+`endif
+
 endmodule
