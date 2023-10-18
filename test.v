@@ -10,6 +10,7 @@ reg clk = 1;
 reg [3:0] ex_addr = 0;
 reg [7:0] db_out;
 wire [7:0] db_in;
+wire wait_sig;
 reg ncs = 1;
 reg nwr = 1;
 reg nrd = 1;
@@ -21,6 +22,7 @@ main uut(
     .nrd(nrd),
     .nwr(nwr),
     .ncs(ncs),
+    .wait_sig(wait_sig),
     .ext_address(ex_addr),
     .db_in(db_out),
     .db_out(db_in)

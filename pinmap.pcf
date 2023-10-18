@@ -10,7 +10,8 @@ set_io --warn-no-port bi 11
 set_io --warn-no-port nrd 2
 set_io --warn-no-port nwr 46
 set_io --warn-no-port ncs 32
-set_io --warn-no-port wait_sig 45
+set_io --warn-no-port wait_sig 47
+set_io --warn-no-port int_sig 45
 set_io --warn-no-port ext_address[0] 27
 set_io --warn-no-port ext_address[1] 26
 set_io --warn-no-port ext_address[2] 25

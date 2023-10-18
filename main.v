@@ -21,6 +21,7 @@ module main (
     output wire [7:0] db_out,
 `endif
     output wire wait_sig,
+    output wire int_sig,
     output wire hsync,
     output wire vsync,
     output wire r,
@@ -169,6 +170,7 @@ module main (
         .nwr(nwr),
         .ncs(ncs),
         .wait_sig(wait_sig),
+        .int_sig(int_sig),
         .ext_address(ext_address),
         .ext_data_in(ext_databus_in),
         .ext_data_out(ext_databus_out),
